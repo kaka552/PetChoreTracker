@@ -175,8 +175,8 @@ export default function ARScanner() {
                   <RefreshCw className="h-6 w-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white mb-1">Scan Environment</h3>
-                  <p className="text-sm text-gray-300">Press the scan button to analyze your surroundings and identify any matching target images.</p>
+                  <h3 className="font-medium text-white mb-1">Automatic Scanning</h3>
+                  <p className="text-sm text-gray-300">The camera will continuously scan for matching images without requiring any button press.</p>
                 </div>
               </div>
               
