@@ -145,25 +145,42 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
           }}
         >
           <div 
-            className="w-64 h-64 bg-gradient-to-br from-primary to-primary/50 rounded-xl"
+            className="w-64 h-64 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl shadow-xl"
             style={{
               transform: `translateX(${panX}px) translateY(${panY}px) rotateY(${rotationY}deg) rotateX(${rotationX}deg) scale(${scale})`,
               transition: isPanning ? 'none' : 'transform 0.1s ease-out'
             }}
           >
-            {/* Model front face */}
-            <div className="absolute inset-0 flex items-center justify-center text-white font-bold">
-              <div className="flex flex-col items-center">
-                <div className="text-2xl mb-2">3D Model</div>
-                <div className="text-sm">DC Motor</div>
+            {/* Model title */}
+            <div className="absolute inset-0 flex items-center justify-center text-white font-bold z-10">
+              <div className="flex flex-col items-center bg-black/30 p-3 rounded-xl backdrop-blur-sm">
+                <div className="text-2xl mb-2">DC Motor</div>
+                <div className="text-sm">Interactive 3D Model</div>
                 <div className="mt-4 animate-bounce">
                   <RefreshCw className="h-8 w-8" />
                 </div>
               </div>
             </div>
             
-            {/* Add 3D-like visual elements */}
+            {/* Add DC motor visual elements */}
             <div className="absolute inset-0 border-4 border-white/20 rounded-xl"></div>
+            
+            {/* Motor casing */}
+            <div className="absolute top-[15%] left-[15%] w-[70%] h-[70%] bg-gray-800 rounded-lg"></div>
+            
+            {/* Motor shaft */}
+            <div className="absolute top-[45%] left-[5%] w-[25%] h-[10%] bg-gray-500 rounded-full"></div>
+            
+            {/* Motor rear (ventilation) */}
+            <div className="absolute top-[35%] right-[10%] w-[15%] h-[30%] bg-gray-700 rounded-md flex items-center justify-center">
+              <div className="w-[80%] h-[80%] border-2 border-gray-600 rounded-full"></div>
+            </div>
+            
+            {/* Connection wires */}
+            <div className="absolute bottom-[20%] right-[20%] w-[20%] h-[15%] bg-red-500 rounded-sm"></div>
+            <div className="absolute bottom-[20%] right-[45%] w-[20%] h-[15%] bg-black rounded-sm"></div>
+            
+            {/* Highlights */}
             <div className="absolute top-0 left-0 w-full h-4 bg-white/10 rounded-t-xl"></div>
             <div className="absolute bottom-0 right-0 w-full h-4 bg-black/20 rounded-b-xl"></div>
           </div>

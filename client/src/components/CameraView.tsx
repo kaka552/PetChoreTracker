@@ -15,7 +15,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   
-  // Start with fake camera on by default for more consistent experience on mobile
+  // Start with fake camera mode for consistent cross-device experience
   const [useFakeCamera, setUseFakeCamera] = useState(true);
 
   // Initialize camera or simulated camera
@@ -374,7 +374,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
         <Button
           variant="secondary"
           size="icon"
-          className="absolute top-4 left-4 rounded-full bg-background/80"
+          className="absolute top-4 left-4 rounded-full bg-background/80 z-50"
           onClick={onBack}
         >
           <ArrowLeft className="h-5 w-5" />
