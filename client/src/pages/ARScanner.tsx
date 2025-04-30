@@ -11,15 +11,23 @@ import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
 // In a real app, this would use a more sophisticated algorithm
 // or integrate with Vuforia's image recognition capabilities
 function findMatchingModel(capturedImage: string, models: any[]) {
-  // This is a simplified simulation of image recognition
-  // In reality, we would use a more sophisticated algorithm
+  console.log(`Scanning image against ${models?.length || 0} available models`);
   
-  // For demo purposes, just return the first model
-  // In a real implementation, this would analyze the image
+  // This is still a simplified version of image recognition
+  // but we'll at least return true to simulate a successful match
+  // In a real implementation, this would do actual image feature comparison
+  
   if (models && models.length > 0) {
-    return models[0];
+    // For demo purposes, let's randomly select a model
+    // to simulate the image recognition behavior
+    // In a real implementation, we would compare image features
+    
+    const randomIndex = Math.floor(Math.random() * models.length);
+    console.log(`Matched with model: ${models[randomIndex].model_name}`);
+    return models[randomIndex];
   }
   
+  console.log('No models available to match against');
   return null;
 }
 
@@ -42,8 +50,9 @@ export default function ARScanner() {
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Find matching model for the captured image
-      const matchedModel = findMatchingModel(imageData, models);
+      // Find matching model for the captured image - handle potential null or undefined
+      const modelsArray = models || [];
+      const matchedModel = findMatchingModel(imageData, modelsArray);
       
       if (matchedModel) {
         toast({

@@ -16,25 +16,97 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
 
   // Initialize camera
   useEffect(() => {
+    // Function to check if browser supports getUserMedia
+    const checkCameraSupport = (): boolean => {
+      return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    };
+
+    // Function to initialize the camera
     const initCamera = async () => {
+      if (!checkCameraSupport()) {
+        console.error("Camera API not supported in this browser");
+        setHasPermission(false);
+        return;
+      }
+      
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        console.log("Attempting to access camera...");
+        
+        // Try environment camera first (back camera on mobile)
+        const constraints = {
           video: {
-            facingMode: 'environment',
+            facingMode: { ideal: 'environment' }, // Use back camera if available
             width: { ideal: 1280 },
             height: { ideal: 720 },
           },
           audio: false,
-        });
+        };
+        
+        console.log("Camera constraints:", constraints);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("Camera stream obtained:", stream.getVideoTracks()[0].label);
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          console.log("Stream assigned to video element");
+          
+          // Fix for video not displaying - ensure it loads properly
+          videoRef.current.onloadedmetadata = () => {
+            console.log("Video metadata loaded, dimensions:", videoRef.current?.videoWidth, "x", videoRef.current?.videoHeight);
+            
+            // This promise must be in place for iOS Safari
+            videoRef.current?.play().then(() => {
+              console.log("Video playback started successfully");
+              setIsActive(true);
+            }).catch(err => {
+              console.error("Error playing video:", err);
+              // Attempt to autoplay failed. This often happens on mobile
+              // Try again with user interaction if needed
+            });
+          };
+          
+          videoRef.current.onerror = (e) => {
+            console.error("Video element error:", e);
+          };
+          
           setMediaStream(stream);
           setHasPermission(true);
-          setIsActive(true);
+        } else {
+          console.error("Video reference is null");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error accessing camera:', error);
+        
+        // Permission errors
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          console.error('Camera permission denied by user or system');
+        }
+        // Device not found errors
+        else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          console.error('No camera detected on this device');
+        }
+        // Constraints errors
+        else if (error.name === 'ConstraintNotSatisfiedError' || error.name === 'OverconstrainedError') {
+          console.error('Camera constraints cannot be satisfied');
+          // Try again with less specific constraints
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+              videoRef.current.onloadedmetadata = () => {
+                videoRef.current?.play()
+                  .then(() => setIsActive(true))
+                  .catch(e => console.error("Fallback video play error:", e));
+              };
+              setMediaStream(stream);
+              setHasPermission(true);
+              return;
+            }
+          } catch (fallbackError) {
+            console.error('Fallback camera access failed:', fallbackError);
+          }
+        }
+        
         setHasPermission(false);
       }
     };
@@ -44,7 +116,11 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
     // Cleanup on unmount
     return () => {
       if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
+        console.log("Stopping all media tracks");
+        mediaStream.getTracks().forEach(track => {
+          track.stop();
+          console.log(`Track ${track.label} stopped`);
+        });
       }
     };
   }, []);
@@ -100,18 +176,33 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       )}
       
       {/* Video stream */}
-      <div className="relative flex-1 bg-black">
+      <div className="relative flex-1 bg-black overflow-hidden">
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover z-0"
           autoPlay
           playsInline
           muted
+          style={{ transform: 'scaleX(-1)' }} // Mirror for front camera if needed
         />
+        
+        {/* Camera status indicator */}
+        {hasPermission === true && !isActive && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
+            <div className="flex flex-col items-center p-4 bg-background rounded-lg">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
+              <p>Starting camera...</p>
+            </div>
+          </div>
+        )}
         
         {/* Scanner overlay */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <div className="w-64 h-64 border-2 border-white/80 rounded-lg"></div>
+          {isActive && (
+            <div className="absolute top-2 right-2 bg-green-500 h-2 w-2 rounded-full animate-pulse" 
+                 title="Camera active"></div>
+          )}
         </div>
         
         {/* Back button */}
