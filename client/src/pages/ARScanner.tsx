@@ -7,10 +7,20 @@ import { getAllModels } from '@/lib/models';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
 
+// Type for our model objects
+interface ModelType {
+  id: number;
+  model_name: string;
+  image_target: string;
+  model_file_url: string;
+  description: string;
+  [key: string]: any; // Allow for additional properties
+}
+
 // A simple image matching function
 // In a real app, this would use a more sophisticated algorithm
 // or integrate with Vuforia's image recognition capabilities
-function findMatchingModel(capturedImage: string, models: any[]) {
+function findMatchingModel(capturedImage: string, models: ModelType[]): ModelType | null {
   console.log(`Scanning image against ${models?.length || 0} available models`);
   
   // This is still a simplified version of image recognition
@@ -36,8 +46,8 @@ export default function ARScanner() {
   const { toast } = useToast();
   const [analyzingImage, setAnalyzingImage] = useState(false);
   
-  // Fetch all models
-  const { data: models, isLoading, error } = useQuery({
+  // Fetch all models with proper typing
+  const { data: models, isLoading, error } = useQuery<ModelType[]>({
     queryKey: ['/api/models'],
     staleTime: 60000, // 1 minute
   });
@@ -50,8 +60,8 @@ export default function ARScanner() {
       // Simulate processing time
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Find matching model for the captured image - handle potential null or undefined
-      const modelsArray = models || [];
+      // Find matching model for the captured image - cast to proper type
+      const modelsArray = Array.isArray(models) ? models as ModelType[] : [];
       const matchedModel = findMatchingModel(imageData, modelsArray);
       
       if (matchedModel) {
