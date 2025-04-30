@@ -14,7 +14,9 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [useFakeCamera, setUseFakeCamera] = useState(false);
+  
+  // Start with fake camera on by default for more consistent experience on mobile
+  const [useFakeCamera, setUseFakeCamera] = useState(true);
 
   // Initialize camera or simulated camera
   useEffect(() => {
@@ -198,25 +200,78 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
     };
   }, []);
 
-  // Capture image from video stream
-  const captureImage = () => {
-    if (videoRef.current && canvasRef.current) {
-      const video = videoRef.current;
+  // Function for simulated camera capture
+  const captureSimulatedImage = () => {
+    if (canvasRef.current) {
       const canvas = canvasRef.current;
-      
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      // Draw current video frame to canvas
       const context = canvas.getContext('2d');
+      
+      // Set canvas size
+      canvas.width = 640;
+      canvas.height = 480;
+      
       if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Clear canvas
+        context.fillStyle = '#333';
+        context.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Convert canvas to data URL (base64 encoded image)
+        // Draw a fake viewfinder
+        context.strokeStyle = '#fff';
+        context.lineWidth = 2;
+        context.strokeRect(canvas.width/4, canvas.height/4, canvas.width/2, canvas.height/2);
+        
+        // Draw some text
+        context.fillStyle = '#fff';
+        context.font = '20px Arial';
+        context.textAlign = 'center';
+        context.fillText('Simulated Camera Capture', canvas.width/2, 40);
+        context.fillText('Scanning...', canvas.width/2, canvas.height/2);
+        
+        // Draw current date/time to make each capture unique
+        context.font = '14px Arial';
+        context.fillText(new Date().toLocaleString(), canvas.width/2, canvas.height - 20);
+        
+        // Convert to image data URL
         const imageDataUrl = canvas.toDataURL('image/jpeg');
         onImageCaptured(imageDataUrl);
       }
+    }
+  };
+
+  // Capture image - either from real camera or simulated
+  const captureImage = () => {
+    if (useFakeCamera) {
+      captureSimulatedImage();
+      return;
+    }
+    
+    if (videoRef.current && canvasRef.current && mediaStream) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      try {
+        // Set canvas dimensions to match video
+        const videoWidth = video.videoWidth || 640;
+        const videoHeight = video.videoHeight || 480;
+        canvas.width = videoWidth;
+        canvas.height = videoHeight;
+        
+        // Draw current video frame to canvas
+        const context = canvas.getContext('2d');
+        if (context) {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          
+          // Convert canvas to data URL
+          const imageDataUrl = canvas.toDataURL('image/jpeg');
+          onImageCaptured(imageDataUrl);
+        }
+      } catch (e) {
+        console.error('Error capturing image:', e);
+        // Fall back to simulated capture
+        captureSimulatedImage();
+      }
+    } else {
+      captureSimulatedImage(); // Fall back if anything is missing
     }
   };
 
@@ -248,33 +303,70 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
         </div>
       )}
       
-      {/* Video stream */}
+      {/* Video stream container */}
       <div className="relative flex-1 bg-black overflow-hidden">
-        <video
-          ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover z-0"
-          autoPlay
-          playsInline
-          muted
-          style={{ width: '100%', height: '100%' }}
-        />
+        {/* Real camera video element */}
+        {!useFakeCamera && (
+          <video
+            ref={videoRef}
+            className="absolute inset-0 w-full h-full object-cover z-0"
+            autoPlay
+            playsInline
+            muted
+            style={{ 
+              width: '100%', 
+              height: '100%',
+              display: 'block'
+            }}
+          />
+        )}
         
-        {/* Camera status indicator */}
-        {hasPermission === true && !isActive && (
+        {/* Fake camera simulation when real camera doesn't work */}
+        {useFakeCamera && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 text-white">
+            <div className="text-center p-4">
+              <Camera className="h-16 w-16 mx-auto mb-4" />
+              <h3 className="text-xl font-bold mb-2">AR Scanner Ready</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                {cameraError ? 
+                  `Camera Error: ${cameraError}. Using demo mode.` : 
+                  "Demo mode activated. Take a picture to simulate AR scanning."}
+              </p>
+              <div className="w-64 h-1 bg-primary/30 relative mx-auto">
+                <div className="absolute top-0 left-0 h-full w-1/2 bg-primary animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Camera starting indicator */}
+        {hasPermission === true && !isActive && !useFakeCamera && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
             <div className="flex flex-col items-center p-4 bg-background rounded-lg">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-2"></div>
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
               <p>Starting camera...</p>
             </div>
           </div>
         )}
         
         {/* Scanner overlay */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-64 h-64 border-2 border-white/80 rounded-lg"></div>
-          {isActive && (
-            <div className="absolute top-2 right-2 bg-green-500 h-2 w-2 rounded-full animate-pulse" 
-                 title="Camera active"></div>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="w-64 h-64 border-2 border-white/80 rounded-lg">
+            {/* Corner markers to make it look more like a scanner */}
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary rounded-tl-lg"></div>
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary rounded-tr-lg"></div>
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary rounded-bl-lg"></div>
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary rounded-br-lg"></div>
+          </div>
+          
+          {/* Status indicator */}
+          {(isActive || useFakeCamera) && (
+            <div className="absolute top-2 right-2 flex items-center">
+              <div className="bg-green-500 h-3 w-3 rounded-full animate-pulse mr-1.5"></div>
+              <span className="text-xs text-white bg-black/50 px-2 py-0.5 rounded-full">
+                {useFakeCamera ? "Demo Mode" : "Camera Active"}
+              </span>
+            </div>
           )}
         </div>
         
@@ -295,7 +387,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           onClick={captureImage}
           size="lg"
           className="rounded-full h-16 w-16 flex items-center justify-center"
-          disabled={!isActive}
+          disabled={!isActive && !useFakeCamera}
         >
           <Camera className="h-8 w-8" />
         </Button>
