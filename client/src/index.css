@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* AR Scanner animations */
+@keyframes scan-line {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-scan-line {
+  animation: scan-line 2s linear infinite;
+}
+
+/* 3D transformation effects */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* AR detection animations */
+@keyframes detect-target {
+  0%, 100% {
+    border-color: rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 1);
+  }
+}
+
 :root {
       --background: 0 0% 100%;
 --foreground: 20 14.3% 4.1%;

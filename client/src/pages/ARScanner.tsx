@@ -148,53 +148,64 @@ export default function ARScanner() {
         onBack={handleBack}
       />
       
-      {/* Help overlay - shown first time or when help is requested */}
+      {/* AR Help Guide - shown first time or when help is requested */}
       {showHelp && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-6">
-          <div className="bg-background rounded-lg max-w-md w-full p-6">
-            <h2 className="text-xl font-bold mb-4">How AR Scanner Works</h2>
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6">
+          <div className="bg-gray-900 rounded-xl max-w-md w-full p-6 border border-blue-500/30 shadow-2xl shadow-blue-500/20">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">AR Experience Guide</h2>
+              <div className="bg-blue-600 p-1.5 rounded-full">
+                <div className="w-4 h-4 bg-white rounded-full animate-pulse"></div>
+              </div>
+            </div>
             
-            <div className="space-y-4 mb-6">
+            <div className="space-y-6 mb-6">
               <div className="flex items-start">
-                <div className="bg-primary/20 p-2 rounded-full mr-3">
-                  <Camera className="h-5 w-5 text-primary" />
+                <div className="bg-blue-500/20 p-3 rounded-full mr-4 flex-shrink-0">
+                  <Camera className="h-6 w-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium">Point your camera</h3>
-                  <p className="text-sm text-muted-foreground">Center the target image in the viewfinder.</p>
+                  <h3 className="font-medium text-white mb-1">Point Camera at Target</h3>
+                  <p className="text-sm text-gray-300">Aim your device at the DC motor image. The AR scanner will automatically detect recognized objects.</p>
                 </div>
               </div>
               
               <div className="flex items-start">
-                <div className="bg-primary/20 p-2 rounded-full mr-3">
-                  <svg className="h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 7v6h-6" />
-                    <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7" />
-                  </svg>
+                <div className="bg-blue-500/20 p-3 rounded-full mr-4 flex-shrink-0">
+                  <RefreshCw className="h-6 w-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium">Scan the image</h3>
-                  <p className="text-sm text-muted-foreground">Press the scan button to detect the target.</p>
+                  <h3 className="font-medium text-white mb-1">Scan Environment</h3>
+                  <p className="text-sm text-gray-300">Press the scan button to analyze your surroundings and identify any matching target images.</p>
                 </div>
               </div>
               
               <div className="flex items-start">
-                <div className="bg-primary/20 p-2 rounded-full mr-3">
-                  <svg className="h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <polygon points="10 8 16 12 10 16 10 8" />
-                  </svg>
+                <div className="bg-blue-500/20 p-3 rounded-full mr-4 flex-shrink-0">
+                  <Box className="h-6 w-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium">View the 3D model</h3>
-                  <p className="text-sm text-muted-foreground">When the target is recognized, a 3D model will appear overlaid on your camera view.</p>
+                  <h3 className="font-medium text-white mb-1">Interact with 3D Models</h3>
+                  <p className="text-sm text-gray-300">When a target is recognized, an interactive 3D model will appear. View specifications, dimensions, and detailed information.</p>
                 </div>
               </div>
             </div>
             
-            <Button className="w-full" onClick={() => setShowHelp(false)}>
-              Got it
-            </Button>
+            <div className="relative">
+              <div className="absolute -top-6 -left-6 w-12 h-12 bg-blue-500/10 rounded-full"></div>
+              <div className="absolute -bottom-6 -right-6 w-12 h-12 bg-blue-500/10 rounded-full"></div>
+              
+              <Button 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white" 
+                onClick={() => setShowHelp(false)}
+              >
+                Start AR Experience
+              </Button>
+            </div>
+            
+            <p className="text-center text-xs text-gray-500 mt-4">
+              For best results, use in a well-lit environment with the target image clearly visible
+            </p>
           </div>
         </div>
       )}
