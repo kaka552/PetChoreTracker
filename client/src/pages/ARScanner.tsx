@@ -146,6 +146,7 @@ export default function ARScanner() {
       <CameraView 
         onImageCaptured={handleImageCaptured}
         onBack={handleBack}
+        models={models || []}
       />
       
       {/* AR Help Guide - shown first time or when help is requested */}

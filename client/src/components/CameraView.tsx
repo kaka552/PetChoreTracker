@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Camera, RefreshCw } from 'lucide-react';
 import ModelRenderer from './ModelRenderer';
 
+// Define the model type
 interface ModelType {
   id: number;
   model_name: string;
@@ -15,7 +16,7 @@ interface ModelType {
 interface CameraViewProps {
   onImageCaptured: (image: string) => void;
   onBack: () => void;
-  models: ModelType[];
+  models?: ModelType[];
 }
 
 export default function CameraView({ onImageCaptured, onBack, models = [] }: CameraViewProps) {
@@ -25,7 +26,6 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
   const [isScanning, setIsScanning] = useState(true);
   const [showModel, setShowModel] = useState(false);
   const [recognizedModel, setRecognizedModel] = useState<ModelType | null>(null);
-  const [scanResult, setScanResult] = useState<string | null>(null);
   
   // Initialize camera on component mount
   useEffect(() => {
@@ -87,16 +87,15 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
   
   // Function to manually scan and recognize an image
   const scanForImages = () => {
-    if (models.length === 0) {
+    if (!models || models.length === 0) {
       console.warn("No models available to match against");
-      setScanResult("No models available");
       return;
     }
     
     // Log available models
-    console.log("Scanning against available models:");
-    models.forEach((model, i) => {
-      console.log(`Model ${i}: ${model.model_name}`);
+    console.log(`Scanning against ${models.length} available models:`);
+    models.forEach((model, index) => {
+      console.log(`Model ${index}: ${model.model_name}`);
     });
     
     // For demo purposes, always match the first model
@@ -106,7 +105,6 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
     // Update state
     setIsScanning(false);
     setRecognizedModel(matchedModel);
-    setScanResult(`Found: ${matchedModel.model_name}`);
     setShowModel(true);
   };
   
@@ -115,7 +113,6 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
     setShowModel(false);
     setIsScanning(true);
     setRecognizedModel(null);
-    setScanResult(null);
   };
   
   // Capture current camera frame to canvas
@@ -179,7 +176,7 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
             position: 'absolute',
             top: 0,
             left: 0,
-            zIndex: 10
+            zIndex: 1
           }}
         />
         
@@ -193,9 +190,10 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
           </div>
         )}
         
-        {/* 3D Model display - only shown when a model is recognized */}
-        {showModel && recognizedModel && (
-          <div className="absolute inset-0 z-20 overflow-hidden bg-black/50">
+        {/* Either show the scanning UI or the model view, never both */}
+        {showModel && recognizedModel ? (
+          /* 3D Model display - completely replaces scanning UI */
+          <div className="absolute inset-0 z-20 bg-black/80">
             {/* Recognition success indicator */}
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full text-sm flex items-center z-30">
               <div className="w-2 h-2 bg-white rounded-full animate-ping mr-2"></div>
@@ -222,13 +220,11 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
               New Scan
             </Button>
           </div>
-        )}
-        
-        {/* Scanning UI - only visible when not showing a model */}
-        {!showModel && (
-          <>
+        ) : (
+          /* Scanning UI - Only visible when no model is shown */
+          <div className="absolute inset-0 z-10">
             {/* Camera viewfinder and scan guidance */}
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-15">
+            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
               <div className="text-white bg-black/60 px-4 py-2 rounded-lg mb-4 text-center">
                 Point camera at target image and tap SCAN
               </div>
@@ -242,13 +238,13 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
                 
                 {/* Scan line animation */}
                 {isScanning && (
-                  <div className="absolute left-0 right-0 h-0.5 bg-blue-500 animate-[ping_1.5s_ease-in-out_infinite]" style={{ top: '50%' }}></div>
+                  <div className="absolute left-0 right-0 h-0.5 bg-blue-500 animate-pulse" style={{ top: '50%' }}></div>
                 )}
               </div>
             </div>
             
             {/* Active scan button - center bottom */}
-            <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2">
               <Button
                 className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 rounded-full shadow-lg"
                 onClick={scanForImages}
@@ -257,7 +253,7 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
                 <div className="text-lg font-semibold">SCAN IMAGE</div>
               </Button>
             </div>
-          </>
+          </div>
         )}
         
         {/* Back button - always visible */}
