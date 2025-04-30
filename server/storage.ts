@@ -1,4 +1,6 @@
 import { users, models, type User, type InsertUser, type Model, type InsertModel } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 // Storage interface for users and models
 export interface IStorage {
@@ -16,81 +18,67 @@ export interface IStorage {
   deleteModel(id: number): Promise<boolean>;
 }
 
-// In-memory storage implementation
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private models: Map<number, Model>;
-  private userIdCounter: number;
-  private modelIdCounter: number;
-
-  constructor() {
-    this.users = new Map();
-    this.models = new Map();
-    this.userIdCounter = 1;
-    this.modelIdCounter = 1;
-    
-    // Note: The default user was removed to allow registration with any email
-    // If you need to login with a demo account, please register a new one
-  }
-
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const results = await db.select().from(users).where(eq(users.id, id));
+    return results[0];
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email
-    );
+    const results = await db.select().from(users).where(eq(users.email, email));
+    return results[0];
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const now = new Date();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
+    const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
   }
 
   // Model operations
   async getModel(id: number): Promise<Model | undefined> {
-    return this.models.get(id);
+    const results = await db.select().from(models).where(eq(models.id, id));
+    return results[0];
   }
 
   async getAllModels(): Promise<Model[]> {
-    return Array.from(this.models.values());
+    return await db.select().from(models);
   }
 
   async getUserModels(userId: number): Promise<Model[]> {
-    return Array.from(this.models.values()).filter(
-      (model) => model.uploaded_by === userId
-    );
+    return await db.select().from(models).where(eq(models.uploaded_by, userId));
   }
 
   async createModel(insertModel: InsertModel): Promise<Model> {
-    const id = this.modelIdCounter++;
-    const now = new Date();
-    const model: Model = { 
-      ...insertModel, 
-      id,
-      created_at: now
-    };
-    this.models.set(id, model);
-    return model;
+    const result = await db.insert(models).values(insertModel).returning();
+    return result[0];
   }
 
   async updateModel(id: number, modelUpdate: Partial<InsertModel>): Promise<Model | undefined> {
-    const existingModel = this.models.get(id);
+    // First check if the model exists
+    const existingModel = await this.getModel(id);
     if (!existingModel) return undefined;
 
-    const updatedModel: Model = { ...existingModel, ...modelUpdate };
-    this.models.set(id, updatedModel);
-    return updatedModel;
+    // Update the model
+    const result = await db
+      .update(models)
+      .set(modelUpdate)
+      .where(eq(models.id, id))
+      .returning();
+    
+    return result[0];
   }
 
   async deleteModel(id: number): Promise<boolean> {
-    return this.models.delete(id);
+    const result = await db
+      .delete(models)
+      .where(eq(models.id, id))
+      .returning({ id: models.id });
+    
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+// Export the database storage instance
+export const storage = new DatabaseStorage();
