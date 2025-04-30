@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Camera } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
 
 interface CameraViewProps {
   onImageCaptured: (image: string) => void;
@@ -13,16 +13,17 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [isActive, setIsActive] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [useFakeCamera, setUseFakeCamera] = useState(false);
 
-  // Initialize camera
+  // Initialize camera or simulated camera
   useEffect(() => {
-    // Force user interaction which helps with starting videos on some browsers
-    // especially on mobile where autoplay is restricted
+    // Force user interaction to help with video autoplay
     const forceFocus = () => {
       console.log("Applying focus to ensure camera can be started");
       document.body.focus();
-      // Create a temporary button and click it to simulate user interaction
-      // This can help with autoplay restrictions on some browsers
+      
+      // Simulate user interaction
       const tempButton = document.createElement('button');
       tempButton.style.position = 'absolute';
       tempButton.style.left = '-1000px';
@@ -38,11 +39,21 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     };
 
-    // Function to initialize the camera
+    // If we're using the fake camera mode, don't initialize real camera
+    if (useFakeCamera) {
+      console.log("Using fake camera mode for compatibility");
+      setIsActive(true);
+      setHasPermission(true);
+      return;
+    }
+    
+    // Function to initialize the real camera
     const initCamera = async () => {
       if (!checkCameraSupport()) {
         console.error("Camera API not supported in this browser");
-        setHasPermission(false);
+        setCameraError("Your browser doesn't support camera access");
+        setUseFakeCamera(true);
+        setHasPermission(true);
         return;
       }
       

@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Move } from 'lucide-react';
+import { RotateCcw, Maximize2, Move, Info, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 interface ModelRendererProps {
   modelUrl: string;
@@ -12,26 +12,67 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
   const containerRef = useRef<HTMLDivElement>(null);
   const [descriptionOpen, setDescriptionOpen] = useState(false);
   const [interactionMode, setInteractionMode] = useState<'rotate' | 'pan' | 'zoom'>('rotate');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [modelLoaded, setModelLoaded] = useState(true); // Set to true to skip loading state
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [rotationX, setRotationX] = useState(0);
+  const [rotationY, setRotationY] = useState(0);
+  const [scale, setScale] = useState(1);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
   
-  // Mock 3D rendering with a placeholder
-  // In a real app, this would use Three.js, React Three Fiber, or a similar library
+  // For demonstration, implement a simple rotation system without Three.js
   useEffect(() => {
-    if (!containerRef.current) return;
-    
-    // Simulate loading the 3D model
-    const loadingTimer = setTimeout(() => {
-      // 10% chance of error for demonstration
-      if (Math.random() < 0.1) {
-        setError('Failed to load 3D model. Please try again.');
-      } else {
-        setIsLoading(false);
+    // Start with a slight animation
+    const interval = setInterval(() => {
+      if (!isPanning) {
+        setRotationY(prev => (prev + 0.5) % 360);
       }
-    }, 2000);
+    }, 100);
     
-    return () => clearTimeout(loadingTimer);
-  }, [modelUrl]);
+    return () => clearInterval(interval);
+  }, [isPanning]);
+  
+  // Handle mouse/touch interactions
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setDragStartX(e.clientX);
+    setDragStartY(e.clientY);
+    
+    if (interactionMode === 'pan') {
+      setIsPanning(true);
+    }
+  };
+  
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.buttons !== 1) return;
+    
+    const deltaX = e.clientX - dragStartX;
+    const deltaY = e.clientY - dragStartY;
+    
+    if (interactionMode === 'rotate') {
+      setRotationY(prev => (prev + deltaX * 0.5) % 360);
+      setRotationX(prev => {
+        const newVal = prev + deltaY * 0.5;
+        return Math.max(-60, Math.min(60, newVal)); // Limit vertical rotation
+      });
+    } else if (interactionMode === 'zoom') {
+      const newScale = scale + deltaY * -0.01;
+      setScale(Math.max(0.5, Math.min(3, newScale))); // Limit zoom
+    } else if (interactionMode === 'pan' && isPanning) {
+      setPanX(prev => prev + deltaX * 0.5);
+      setPanY(prev => prev + deltaY * 0.5);
+    }
+    
+    setDragStartX(e.clientX);
+    setDragStartY(e.clientY);
+  };
+  
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
   
   // Handle double tap to show description
   const handleDoubleTap = () => {
@@ -45,8 +86,19 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
   
   // Reset view to default
   const resetView = () => {
-    // In a real app, this would reset the camera position/rotation
-    console.log('View reset');
+    setRotationX(0);
+    setRotationY(0);
+    setScale(1);
+    setPanX(0);
+    setPanY(0);
+  };
+  
+  const zoomIn = () => {
+    setScale(prev => Math.min(3, prev + 0.1));
+  };
+  
+  const zoomOut = () => {
+    setScale(prev => Math.max(0.5, prev - 0.1));
   };
   
   if (error) {
@@ -59,6 +111,7 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
         </div>
         <h2 className="text-xl font-bold mb-2">Failed to Load Model</h2>
         <p className="text-muted-foreground mb-6">{error}</p>
+        <Button onClick={() => window.location.reload()}>Try Again</Button>
       </div>
     );
   }
@@ -79,13 +132,40 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
         ref={containerRef}
         className="flex-1 relative bg-gray-900 rounded-lg overflow-hidden"
         onDoubleClick={handleDoubleTap}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
-        {/* This would be replaced with actual 3D model rendering */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-48 h-48 bg-gradient-to-br from-primary to-primary/50 rounded-xl transform-gpu animate-pulse">
-            <div className="absolute inset-0 flex items-center justify-center text-white font-bold text-lg">
-              3D Model View
+        {/* Interactive 3D-like model display */}
+        <div 
+          className="absolute inset-0 flex items-center justify-center"
+          style={{
+            perspective: '1000px'
+          }}
+        >
+          <div 
+            className="w-64 h-64 bg-gradient-to-br from-primary to-primary/50 rounded-xl"
+            style={{
+              transform: `translateX(${panX}px) translateY(${panY}px) rotateY(${rotationY}deg) rotateX(${rotationX}deg) scale(${scale})`,
+              transition: isPanning ? 'none' : 'transform 0.1s ease-out'
+            }}
+          >
+            {/* Model front face */}
+            <div className="absolute inset-0 flex items-center justify-center text-white font-bold">
+              <div className="flex flex-col items-center">
+                <div className="text-2xl mb-2">3D Model</div>
+                <div className="text-sm">DC Motor</div>
+                <div className="mt-4 animate-bounce">
+                  <RefreshCw className="h-8 w-8" />
+                </div>
+              </div>
             </div>
+            
+            {/* Add 3D-like visual elements */}
+            <div className="absolute inset-0 border-4 border-white/20 rounded-xl"></div>
+            <div className="absolute top-0 left-0 w-full h-4 bg-white/10 rounded-t-xl"></div>
+            <div className="absolute bottom-0 right-0 w-full h-4 bg-black/20 rounded-b-xl"></div>
           </div>
         </div>
         
@@ -94,6 +174,26 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
           {interactionMode === 'rotate' && 'Rotate Mode'}
           {interactionMode === 'pan' && 'Pan Mode'}
           {interactionMode === 'zoom' && 'Zoom Mode'}
+        </div>
+        
+        {/* Info button */}
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          className="absolute top-4 right-4 rounded-full"
+          onClick={() => setDescriptionOpen(true)}
+        >
+          <Info className="h-4 w-4" />
+        </Button>
+        
+        {/* Quick zoom controls */}
+        <div className="absolute bottom-20 right-4 flex flex-col gap-2">
+          <Button variant="secondary" size="icon" onClick={zoomIn}>
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button variant="secondary" size="icon" onClick={zoomOut}>
+            <ZoomOut className="h-4 w-4" />
+          </Button>
         </div>
         
         {/* Instructions */}
@@ -142,7 +242,7 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
             <DialogTitle>Model Description</DialogTitle>
           </DialogHeader>
           <DialogDescription>
-            {description}
+            {description || "This is a 3D model of a DC motor. DC motors are widely used in various applications requiring rotational motion, including robotics, industrial machinery, and consumer electronics."}
           </DialogDescription>
         </DialogContent>
       </Dialog>
