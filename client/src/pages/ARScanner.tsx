@@ -167,7 +167,7 @@ export default function ARScanner() {
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">Point Camera at Target</h3>
-                  <p className="text-sm text-gray-300">Aim your device at the DC motor image. The AR scanner will automatically detect recognized objects.</p>
+                  <p className="text-sm text-gray-300">Aim your device at the DC motor image to position it clearly in the viewfinder.</p>
                 </div>
               </div>
               
@@ -176,8 +176,8 @@ export default function ARScanner() {
                   <RefreshCw className="h-6 w-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white mb-1">Automatic Scanning</h3>
-                  <p className="text-sm text-gray-300">The camera will continuously scan for matching images without requiring any button press.</p>
+                  <h3 className="font-medium text-white mb-1">Manual Scanning</h3>
+                  <p className="text-sm text-gray-300">Press the SCAN IMAGE button when the target is centered in the viewfinder.</p>
                 </div>
               </div>
               
@@ -187,7 +187,7 @@ export default function ARScanner() {
                 </div>
                 <div>
                   <h3 className="font-medium text-white mb-1">Interact with 3D Models</h3>
-                  <p className="text-sm text-gray-300">When a target is recognized, an interactive 3D model will appear. View specifications, dimensions, and detailed information.</p>
+                  <p className="text-sm text-gray-300">When a target is recognized, an interactive 3D model will appear. You can rotate, zoom, and double-tap to view information.</p>
                 </div>
               </div>
             </div>
