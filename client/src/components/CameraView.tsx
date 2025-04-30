@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Camera, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, Info, RefreshCw } from 'lucide-react';
 
 interface CameraViewProps {
   onImageCaptured: (image: string) => void;
