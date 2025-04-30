@@ -14,6 +14,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [showModel, setShowModel] = useState(false);
   
   // Start with fake camera mode for consistent cross-device experience
   const [useFakeCamera, setUseFakeCamera] = useState(true);
@@ -330,12 +331,54 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
               <p className="text-sm text-gray-300 mb-4">
                 {cameraError ? 
                   `Camera Error: ${cameraError}. Using demo mode.` : 
-                  "Demo mode activated. Take a picture to simulate AR scanning."}
+                  "Demo mode activated. Tap scan to detect markers in view."}
               </p>
               <div className="w-64 h-1 bg-primary/30 relative mx-auto">
                 <div className="absolute top-0 left-0 h-full w-1/2 bg-primary animate-pulse"></div>
               </div>
+              
+              {/* Scan button for demo mode */}
+              <Button 
+                className="mt-6 w-32 mx-auto"
+                onClick={() => setShowModel(true)}
+              >
+                Scan Now
+              </Button>
             </div>
+          </div>
+        )}
+        
+        {/* Model overlay - only shown when a marker is detected */}
+        {showModel && (
+          <div className="absolute inset-0 flex items-center justify-center z-20">
+            <div className="relative w-60 h-60">
+              {/* Motor visual overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-blue-400 rounded-lg shadow-xl">
+                {/* Motor components */}
+                <div className="absolute top-[15%] left-[15%] w-[70%] h-[70%] bg-gray-800 rounded-lg"></div>
+                <div className="absolute top-[45%] left-[5%] w-[25%] h-[10%] bg-gray-500 rounded-full animate-pulse"></div>
+                <div className="absolute top-[35%] right-[10%] w-[15%] h-[30%] bg-gray-700 rounded-md flex items-center justify-center">
+                  <div className="w-[80%] h-[80%] border-2 border-gray-600 rounded-full animate-spin"></div>
+                </div>
+                <div className="absolute bottom-[20%] right-[20%] w-[20%] h-[15%] bg-red-500 rounded-sm"></div>
+                <div className="absolute bottom-[20%] right-[45%] w-[20%] h-[15%] bg-black rounded-sm"></div>
+              </div>
+              
+              {/* Label */}
+              <div className="absolute -top-12 left-0 right-0 text-center">
+                <span className="bg-black/80 text-white px-3 py-1 rounded-full text-sm">
+                  DC Motor Detected
+                </span>
+              </div>
+            </div>
+            
+            {/* View Details button */}
+            <Button 
+              className="absolute bottom-12 animate-bounce"
+              onClick={captureImage}
+            >
+              View Details
+            </Button>
           </div>
         )}
         
