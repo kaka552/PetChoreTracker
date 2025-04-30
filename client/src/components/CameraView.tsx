@@ -16,8 +16,8 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showModel, setShowModel] = useState(false);
   
-  // Use simulated camera to ensure consistent experience on all devices
-  const [useFakeCamera, setUseFakeCamera] = useState(true);
+  // Always try to use real camera first - important for actual video stream
+  const [useFakeCamera, setUseFakeCamera] = useState(false);
   const [isScanning, setIsScanning] = useState(true); 
   const [autoCapture, setAutoCapture] = useState(true); // Enable auto-capture by default
 
@@ -88,7 +88,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       return;
     }
     
-    // Function to initialize the real camera
+    // Function to initialize the real camera - simplified for maximum compatibility
     const initCamera = async () => {
       if (!checkCameraSupport()) {
         console.error("Camera API not supported in this browser");
@@ -99,129 +99,42 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       }
       
       try {
-        console.log("Attempting to access camera...");
-        
-        // Try environment camera first (back camera on mobile)
-        const constraints = {
-          video: {
-            facingMode: { ideal: 'environment' }, // Use back camera if available
+        // Camera initialization with environment facing (back camera) preference
+        console.log("Starting camera in video mode with environment facing camera...");
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: "environment",
             width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
-          audio: false,
-        };
-        
-        console.log("Camera constraints:", constraints);
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        console.log("Camera stream obtained:", stream.getVideoTracks()[0].label);
+            height: { ideal: 720 }
+          }, 
+          audio: false 
+        });
         
         if (videoRef.current) {
+          // Connect the stream to the video element
           videoRef.current.srcObject = stream;
-          console.log("Stream assigned to video element");
           
-          // Fix for video not displaying - ensure it loads properly
-          const videoElement = videoRef.current;
-          
-          // Set multiple event listeners to catch when the video is ready
-          videoElement.onloadedmetadata = () => {
-            console.log("Video metadata loaded, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
-            
-            // Force display the video
-            videoElement.style.display = 'block';
-            
-            // Try to play the video
-            videoElement.play()
+          // Core event handler for when video can play
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play()
               .then(() => {
-                console.log("Video playback started successfully");
+                console.log("Camera started successfully!");
                 setIsActive(true);
               })
               .catch(err => {
-                console.error("Error playing video:", err);
+                console.error("Error starting camera:", err);
+                setUseFakeCamera(true);
               });
-          };
-          
-          // Additional event handlers for reliability
-          videoElement.onloadeddata = () => {
-            console.log("Video data loaded");
-            videoElement.style.display = 'block';
-          };
-          
-          videoElement.oncanplay = () => {
-            console.log("Video can play");
-            videoElement.play()
-              .then(() => setIsActive(true))
-              .catch(e => console.error("Play error:", e));
-          };
-          
-          videoRef.current.onerror = (e) => {
-            console.error("Video element error:", e);
           };
           
           setMediaStream(stream);
           setHasPermission(true);
-        } else {
-          console.error("Video reference is null");
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error('Error accessing camera:', error);
-        
-        // Permission errors
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          console.error('Camera permission denied by user or system');
-        }
-        // Device not found errors
-        else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-          console.error('No camera detected on this device');
-        }
-        // Constraints errors
-        else if (error.name === 'ConstraintNotSatisfiedError' || error.name === 'OverconstrainedError') {
-          console.error('Camera constraints cannot be satisfied');
-          // Try again with less specific constraints
-          try {
-            console.log("Trying fallback camera access with basic constraints");
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            
-            if (videoRef.current) {
-              const videoElement = videoRef.current;
-              videoElement.srcObject = stream;
-              console.log("Fallback stream assigned to video element");
-              
-              // Use the same enhanced event handling for the fallback
-              videoElement.onloadedmetadata = () => {
-                console.log("Fallback: Video metadata loaded");
-                videoElement.style.display = 'block';
-                
-                videoElement.play()
-                  .then(() => {
-                    console.log("Fallback: Video playback started successfully");
-                    setIsActive(true);
-                  })
-                  .catch(e => console.error("Fallback video play error:", e));
-              };
-              
-              // Additional event handlers
-              videoElement.onloadeddata = () => {
-                console.log("Fallback: Video data loaded");
-                videoElement.style.display = 'block';
-              };
-              
-              videoElement.oncanplay = () => {
-                console.log("Fallback: Video can play");
-                videoElement.play()
-                  .then(() => setIsActive(true))
-                  .catch(e => console.error("Fallback play error:", e));
-              };
-              
-              setMediaStream(stream);
-              setHasPermission(true);
-              return;
-            }
-          } catch (fallbackError) {
-            console.error('Fallback camera access failed:', fallbackError);
-          }
-        }
-        
-        setHasPermission(false);
+        // Fall back to simulated camera mode
+        setUseFakeCamera(true);
+        setHasPermission(true);
       }
     };
 
@@ -344,28 +257,25 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       
       {/* Video stream container */}
       <div className="relative flex-1 bg-black overflow-hidden">
-        {/* Real camera video element - with improved mobile compatibility */}
+        {/* Real camera video element - simplified for maximum compatibility */}
         {!useFakeCamera && (
-          <video
-            ref={videoRef}
-            className="absolute inset-0 w-full h-full object-cover z-0"
-            autoPlay
-            playsInline
-            muted
-            controls={false}
-            webkit-playsinline="true"
-            x5-playsinline="true"
-            x5-video-player-type="h5"
-            x5-video-player-fullscreen="true"
-            x5-video-orientation="portraint"
-            style={{ 
-              width: '100%', 
-              height: '100%',
-              display: 'block',
-              objectFit: 'cover',
-              background: '#000'
-            }}
-          />
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black z-0">
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              autoPlay
+              playsInline
+              muted
+              controls={false}
+              data-facing="environment"
+              style={{ 
+                display: 'block',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                backgroundColor: '#000'
+              }}
+            />
+          </div>
         )}
         
         {/* Simulated camera view - to mimic real-time video feed */}
