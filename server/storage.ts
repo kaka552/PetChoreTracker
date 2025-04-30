@@ -28,13 +28,9 @@ export class MemStorage implements IStorage {
     this.models = new Map();
     this.userIdCounter = 1;
     this.modelIdCounter = 1;
-
-    // Add a dev user by default
-    this.createUser({
-      email: "kakateja52@gmail.com", // As specified in the requirements
-      password: "adminpass123", // This would typically be hashed
-      role: "dev"
-    });
+    
+    // Note: The default user was removed to allow registration with any email
+    // If you need to login with a demo account, please register a new one
   }
 
   // User operations

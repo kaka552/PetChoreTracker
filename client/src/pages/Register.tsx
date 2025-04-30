@@ -49,18 +49,38 @@ export default function Register() {
     setIsLoading(true);
     try {
       const { confirmPassword, ...registerData } = data;
-      await registerUser(registerData);
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registerData),
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 409) {
+          throw new Error('This email is already registered. Please use a different email or login instead.');
+        } else {
+          throw new Error(responseData.message || 'Registration failed. Please try again.');
+        }
+      }
+      
+      // Save token to local storage
+      localStorage.setItem('auth_token', responseData.token);
+      
       await refreshUser();
       setLocation('/');
       toast({
         title: 'Registration successful!',
         description: 'Your account has been created.',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Registration error:', error);
       toast({
         title: 'Registration failed',
-        description: 'Something went wrong. Please try again.',
+        description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
     } finally {

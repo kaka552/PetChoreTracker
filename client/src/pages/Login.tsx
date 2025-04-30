@@ -40,18 +40,38 @@ export default function Login() {
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
-      await login(data);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      const responseData = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid email or password. Please try again.');
+        } else {
+          throw new Error(responseData.message || 'Login failed. Please try again.');
+        }
+      }
+      
+      // Save token to local storage
+      localStorage.setItem('auth_token', responseData.token);
+      
       await refreshUser();
       setLocation('/');
       toast({
         title: 'Welcome back!',
         description: 'You have successfully logged in.',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
       toast({
         title: 'Login failed',
-        description: 'Invalid email or password. Please try again.',
+        description: error.message || 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
     } finally {
