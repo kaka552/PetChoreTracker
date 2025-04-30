@@ -1,7 +1,7 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { RotateCcw, Maximize2, Move, Info, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
+import { RotateCcw, Move, Info, ZoomIn, ZoomOut, RefreshCw } from 'lucide-react';
 
 interface ModelRendererProps {
   modelUrl: string;
@@ -9,14 +9,10 @@ interface ModelRendererProps {
 }
 
 export default function ModelRenderer({ modelUrl, description }: ModelRendererProps) {
+  // Refs and state
   const containerRef = useRef<HTMLDivElement>(null);
-  const [descriptionOpen, setDescriptionOpen] = useState(false);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [interactionMode, setInteractionMode] = useState<'rotate' | 'pan' | 'zoom'>('rotate');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [modelLoaded, setModelLoaded] = useState(true); // Set to true to skip loading state
-  const [dragStartX, setDragStartX] = useState(0);
-  const [dragStartY, setDragStartY] = useState(0);
   const [rotationX, setRotationX] = useState(0);
   const [rotationY, setRotationY] = useState(0);
   const [scale, setScale] = useState(1);
@@ -24,34 +20,50 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   
-  // For demonstration, implement a simple rotation system without Three.js
-  useEffect(() => {
-    // Start with a slight animation
-    const interval = setInterval(() => {
-      if (!isPanning) {
-        setRotationY(prev => (prev + 0.5) % 360);
-      }
-    }, 100);
-    
-    return () => clearInterval(interval);
-  }, [isPanning]);
+  // Track mouse/touch position for interaction
+  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
   
-  // Handle mouse/touch interactions
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    setDragStartX(e.clientX);
-    setDragStartY(e.clientY);
+  // Animate initial rotation
+  useEffect(() => {
+    if (!isPanning) {
+      const interval = setInterval(() => {
+        setRotationY(prev => (prev + 0.5) % 360);
+      }, 100);
+      
+      // Stop automatic rotation after 2 seconds
+      const timeout = setTimeout(() => {
+        clearInterval(interval);
+      }, 2000);
+      
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timeout);
+      };
+    }
+  }, []);
+  
+  // Mouse/touch interaction handlers
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setStartPos({ x: e.clientX, y: e.clientY });
     
     if (interactionMode === 'pan') {
       setIsPanning(true);
     }
+    
+    // Capture pointer to track moves outside element
+    if (containerRef.current) {
+      containerRef.current.setPointerCapture(e.pointerId);
+    }
   };
   
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
+    // Skip if not pressed
     if (e.buttons !== 1) return;
     
-    const deltaX = e.clientX - dragStartX;
-    const deltaY = e.clientY - dragStartY;
+    const deltaX = e.clientX - startPos.x;
+    const deltaY = e.clientY - startPos.y;
     
+    // Apply changes based on interaction mode
     if (interactionMode === 'rotate') {
       setRotationY(prev => (prev + deltaX * 0.5) % 360);
       setRotationX(prev => {
@@ -66,17 +78,21 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
       setPanY(prev => prev + deltaY * 0.5);
     }
     
-    setDragStartX(e.clientX);
-    setDragStartY(e.clientY);
+    setStartPos({ x: e.clientX, y: e.clientY });
   };
   
-  const handleMouseUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
     setIsPanning(false);
+    
+    // Release pointer capture
+    if (containerRef.current) {
+      containerRef.current.releasePointerCapture(e.pointerId);
+    }
   };
   
   // Handle double tap to show description
   const handleDoubleTap = () => {
-    setDescriptionOpen(true);
+    setInfoDialogOpen(true);
   };
   
   // Change interaction mode
@@ -93,6 +109,7 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
     setPanY(0);
   };
   
+  // Zoom control functions
   const zoomIn = () => {
     setScale(prev => Math.min(3, prev + 0.1));
   };
@@ -101,30 +118,6 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
     setScale(prev => Math.max(0.5, prev - 0.1));
   };
   
-  if (error) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-4 text-center">
-        <div className="bg-destructive/10 p-4 rounded-full mb-4">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-destructive">
-            <path d="M18 6L6 18M6 6l12 12"></path>
-          </svg>
-        </div>
-        <h2 className="text-xl font-bold mb-2">Failed to Load Model</h2>
-        <p className="text-muted-foreground mb-6">{error}</p>
-        <Button onClick={() => window.location.reload()}>Try Again</Button>
-      </div>
-    );
-  }
-  
-  if (isLoading) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
-        <p className="text-muted-foreground">Loading 3D model...</p>
-      </div>
-    );
-  }
-  
   return (
     <div className="h-full flex flex-col">
       {/* 3D viewer */}
@@ -132,17 +125,16 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
         ref={containerRef}
         className="flex-1 relative bg-gray-900 rounded-lg overflow-hidden"
         onDoubleClick={handleDoubleTap}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        style={{ touchAction: 'none' }} // Prevent browser handling of gestures
       >
-        {/* Interactive 3D-like model display */}
+        {/* 3D-like model display with perspective */}
         <div 
           className="absolute inset-0 flex items-center justify-center"
-          style={{
-            perspective: '1000px'
-          }}
+          style={{ perspective: '1000px' }}
         >
           <div 
             className="w-64 h-64 bg-gradient-to-br from-blue-600 to-blue-400 rounded-xl shadow-xl"
@@ -151,29 +143,18 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
               transition: isPanning ? 'none' : 'transform 0.1s ease-out'
             }}
           >
-            {/* Model title */}
-            <div className="absolute inset-0 flex items-center justify-center text-white font-bold z-10">
-              <div className="flex flex-col items-center bg-black/30 p-3 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl mb-2">DC Motor</div>
-                <div className="text-sm">Interactive 3D Model</div>
-                <div className="mt-4 animate-bounce">
-                  <RefreshCw className="h-8 w-8" />
-                </div>
-              </div>
-            </div>
-            
-            {/* Add DC motor visual elements */}
+            {/* DC Motor model components */}
             <div className="absolute inset-0 border-4 border-white/20 rounded-xl"></div>
             
             {/* Motor casing */}
             <div className="absolute top-[15%] left-[15%] w-[70%] h-[70%] bg-gray-800 rounded-lg"></div>
             
             {/* Motor shaft */}
-            <div className="absolute top-[45%] left-[5%] w-[25%] h-[10%] bg-gray-500 rounded-full"></div>
+            <div className="absolute top-[45%] left-[5%] w-[25%] h-[10%] bg-gray-500 rounded-full animate-pulse"></div>
             
             {/* Motor rear (ventilation) */}
             <div className="absolute top-[35%] right-[10%] w-[15%] h-[30%] bg-gray-700 rounded-md flex items-center justify-center">
-              <div className="w-[80%] h-[80%] border-2 border-gray-600 rounded-full"></div>
+              <div className="w-[80%] h-[80%] border-2 border-gray-600 rounded-full animate-spin"></div>
             </div>
             
             {/* Connection wires */}
@@ -197,18 +178,18 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
         <Button 
           variant="secondary" 
           size="icon" 
-          className="absolute top-4 right-4 rounded-full"
-          onClick={() => setDescriptionOpen(true)}
+          className="absolute top-4 right-4 rounded-full bg-background/80"
+          onClick={() => setInfoDialogOpen(true)}
         >
           <Info className="h-4 w-4" />
         </Button>
         
         {/* Quick zoom controls */}
         <div className="absolute bottom-20 right-4 flex flex-col gap-2">
-          <Button variant="secondary" size="icon" onClick={zoomIn}>
+          <Button variant="secondary" size="icon" onClick={zoomIn} className="bg-background/80">
             <ZoomIn className="h-4 w-4" />
           </Button>
-          <Button variant="secondary" size="icon" onClick={zoomOut}>
+          <Button variant="secondary" size="icon" onClick={zoomOut} className="bg-background/80">
             <ZoomOut className="h-4 w-4" />
           </Button>
         </div>
@@ -220,12 +201,13 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
       </div>
       
       {/* Controls */}
-      <div className="p-3 bg-muted rounded-b-lg flex justify-between">
+      <div className="p-3 bg-gray-800 rounded-b-lg flex justify-between">
         <div className="flex space-x-2">
           <Button 
             variant={interactionMode === 'rotate' ? 'default' : 'outline'} 
             size="sm" 
             onClick={() => changeMode('rotate')}
+            className={interactionMode === 'rotate' ? 'bg-blue-600' : ''}
           >
             <RotateCcw className="h-4 w-4 mr-1" />
             Rotate
@@ -234,6 +216,7 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
             variant={interactionMode === 'pan' ? 'default' : 'outline'} 
             size="sm" 
             onClick={() => changeMode('pan')}
+            className={interactionMode === 'pan' ? 'bg-blue-600' : ''}
           >
             <Move className="h-4 w-4 mr-1" />
             Pan
@@ -242,24 +225,27 @@ export default function ModelRenderer({ modelUrl, description }: ModelRendererPr
             variant={interactionMode === 'zoom' ? 'default' : 'outline'} 
             size="sm" 
             onClick={() => changeMode('zoom')}
+            className={interactionMode === 'zoom' ? 'bg-blue-600' : ''}
           >
-            <Maximize2 className="h-4 w-4 mr-1" />
+            <ZoomIn className="h-4 w-4 mr-1" />
             Zoom
           </Button>
         </div>
         <Button variant="outline" size="sm" onClick={resetView}>
-          Reset View
+          <RefreshCw className="h-4 w-4 mr-1" />
+          Reset
         </Button>
       </div>
       
       {/* Model description dialog */}
-      <Dialog open={descriptionOpen} onOpenChange={setDescriptionOpen}>
+      <Dialog open={infoDialogOpen} onOpenChange={setInfoDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Model Description</DialogTitle>
+            <DialogTitle>DC Motor - Model Information</DialogTitle>
           </DialogHeader>
           <DialogDescription>
-            {description || "This is a 3D model of a DC motor. DC motors are widely used in various applications requiring rotational motion, including robotics, industrial machinery, and consumer electronics."}
+            {description || 
+              "This is a 3D model of a DC motor. DC motors are widely used in various applications requiring rotational motion, including robotics, industrial machinery, and consumer electronics. The model shows key components including the motor housing, shaft, and electrical connections."}
           </DialogDescription>
         </DialogContent>
       </Dialog>
