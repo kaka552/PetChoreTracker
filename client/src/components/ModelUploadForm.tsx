@@ -75,14 +75,17 @@ export default function ModelUploadForm({ onSubmit, initialData }: ModelUploadFo
     }
   };
   
-  // Handle file upload simulation
-  // In a real app, this would upload to Supabase storage
+  // Handle actual file upload by converting to data URL
   const handleModelFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Simulate file upload and generate a URL
-      const modelUrl = `https://example.com/models/${file.name}`;
-      form.setValue('model_file_url', modelUrl);
+      // Read file as data URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        form.setValue('model_file_url', dataUrl);
+      };
+      reader.readAsDataURL(file);
     }
   };
   
@@ -130,11 +133,11 @@ export default function ModelUploadForm({ onSubmit, initialData }: ModelUploadFo
               <FormLabel>3D Model File</FormLabel>
               {field.value ? (
                 <div className="flex items-center gap-2">
-                  <Input 
-                    value={field.value} 
-                    readOnly 
-                    className="flex-1" 
-                  />
+                  <div className="flex-1 p-2 border rounded-md text-sm bg-muted/50 overflow-hidden">
+                    {field.value.length > 40 
+                      ? field.value.substring(0, 30) + '...' + field.value.substring(field.value.length - 10) 
+                      : field.value}
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
