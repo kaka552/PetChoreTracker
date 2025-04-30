@@ -16,24 +16,47 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showModel, setShowModel] = useState(false);
   
-  // Try real camera first, fall back to simulation if needed
+  // Try real camera first, use simulation only if real camera fails
   const [useFakeCamera, setUseFakeCamera] = useState(false);
-  const [isScanning, setIsScanning] = useState(true);
+  const [isScanning, setIsScanning] = useState(true); 
+  const [autoCapture, setAutoCapture] = useState(true); // Enable auto-capture by default
 
   // Initialize camera or simulated camera
-  // Auto-detect effect - simulates real-time AR marker detection
+  // Auto-capture and auto-detect effects for AR-like experience
   useEffect(() => {
     if (isActive && isScanning) {
-      // Simulate AR scanning and detection at random intervals
-      const scanTimeout = setTimeout(() => {
-        console.log("AR scan detected marker!");
-        setShowModel(true);
-        setIsScanning(false);
-      }, 3000); // Detect after 3 seconds
+      // First effect: simulate continuous scanning at fixed intervals
+      const scanInterval = setInterval(() => {
+        if (autoCapture && !showModel) {
+          console.log("AR scanner continuously scanning...");
+          
+          // In a real AR app, this would analyze the current camera frame
+          // Here we just periodically capture the current frame and check it
+          if (Math.random() > 0.7) { // 30% chance to "detect" something in each interval
+            console.log("AR scan detected marker!");
+            setShowModel(true);
+            setIsScanning(false);
+          }
+        }
+      }, 1000); // Check every second
       
-      return () => clearTimeout(scanTimeout);
+      // Second effect: auto-capture after camera is initialized
+      if (autoCapture && !showModel) {
+        const initialCaptureDelay = setTimeout(() => {
+          console.log("AR scan detected marker!");
+          setShowModel(true);
+          setIsScanning(false);
+        }, 3000);
+        
+        return () => {
+          clearInterval(scanInterval);
+          clearTimeout(initialCaptureDelay);
+        };
+      }
+      
+      return () => clearInterval(scanInterval);
     }
-  }, [isActive, isScanning]);
+  }, [isActive, isScanning, autoCapture, showModel]);
 
   useEffect(() => {
     // Force user interaction to help with video autoplay
@@ -510,39 +533,14 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
         </Button>
       </div>
       
-      {/* AR Control panel */}
-      <div className="p-4 flex justify-center items-center space-x-3 bg-background">
-        <Button 
-          onClick={() => {
-            setIsScanning(true);
-            setTimeout(() => captureImage(), 2000);
-          }}
-          size="lg"
-          className="rounded-full h-14 w-14 flex items-center justify-center"
-          disabled={!isActive && !useFakeCamera}
-        >
-          <RefreshCw className="h-6 w-6" />
-        </Button>
-        
-        <div className="text-sm font-medium text-center">
-          <div className="text-muted-foreground mb-1">AR Scanner</div>
-          <div className="flex items-center justify-center">
-            <div className="h-2 w-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
-            {isScanning ? "Detecting..." : "Ready"}
+      {/* Simple status indicator only */}
+      <div className="p-4 flex justify-center items-center bg-background">
+        <div className="flex items-center justify-center px-6 py-2 rounded-full bg-blue-600 text-white">
+          <div className="h-2 w-2 bg-white rounded-full mr-2 animate-pulse"></div>
+          <div className="text-sm font-medium">
+            {isScanning ? "Detecting Images..." : "Target Found"}
           </div>
         </div>
-        
-        <Button 
-          onClick={() => {
-            // Take full snapshot
-            captureImage();
-          }}
-          variant="outline"
-          size="icon"
-          className="rounded-full h-14 w-14 flex items-center justify-center"
-        >
-          <Camera className="h-6 w-6" />
-        </Button>
       </div>
       
       {/* Hidden canvas for image processing */}
