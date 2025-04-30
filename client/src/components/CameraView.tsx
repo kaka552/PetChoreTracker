@@ -88,7 +88,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       return;
     }
     
-    // Function to initialize the real camera - simplified for maximum compatibility
+    // Function to initialize the real camera with multiple fallback options
     const initCamera = async () => {
       if (!checkCameraSupport()) {
         console.error("Camera API not supported in this browser");
@@ -97,44 +97,101 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
         setHasPermission(true);
         return;
       }
+
+      // Set a timeout to fall back to simulated mode if camera takes too long
+      const cameraTimeout = setTimeout(() => {
+        console.log("Camera initialization timeout - falling back to simulated camera");
+        if (!isActive) {
+          setUseFakeCamera(true);
+          setHasPermission(true);
+          setIsActive(true);
+        }
+      }, 5000);
       
       try {
-        // Camera initialization with environment facing (back camera) preference
-        console.log("Starting camera in video mode with environment facing camera...");
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }, 
-          audio: false 
-        });
+        // Try multiple camera configurations in sequence for maximum compatibility
+        let stream = null;
+        
+        // First try: environment facing (back camera) with ideal resolution
+        try {
+          console.log("Attempt 1: Using environment-facing camera with ideal resolution");
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              facingMode: "environment",
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          });
+        } catch (err) {
+          console.log("Attempt 1 failed:", err.message);
+          
+          // Second try: any camera with lower resolution
+          try {
+            console.log("Attempt 2: Using any camera with lower resolution");
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+              },
+              audio: false
+            });
+          } catch (err2) {
+            console.log("Attempt 2 failed:", err2.message);
+            
+            // Third try: minimum constraints
+            console.log("Attempt 3: Using minimum constraints");
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            });
+          }
+        }
+        
+        if (!stream) {
+          throw new Error("All camera initialization attempts failed");
+        }
         
         if (videoRef.current) {
-          // Connect the stream to the video element
+          // Connect the stream to the video element directly
           videoRef.current.srcObject = stream;
           
-          // Core event handler for when video can play
+          // Add all possible event handlers for maximum compatibility
           videoRef.current.onloadedmetadata = () => {
+            clearTimeout(cameraTimeout);
             videoRef.current?.play()
               .then(() => {
                 console.log("Camera started successfully!");
                 setIsActive(true);
               })
               .catch(err => {
-                console.error("Error starting camera:", err);
+                console.error("Error playing video:", err);
                 setUseFakeCamera(true);
+                setIsActive(true);
               });
+          };
+          
+          // Backup handler in case onloadedmetadata doesn't fire
+          videoRef.current.oncanplay = () => {
+            clearTimeout(cameraTimeout);
+            if (!isActive) {
+              console.log("Camera can play now");
+              setIsActive(true);
+            }
           };
           
           setMediaStream(stream);
           setHasPermission(true);
+        } else {
+          clearTimeout(cameraTimeout);
+          throw new Error("Video reference is null");
         }
       } catch (error) {
-        console.error('Error accessing camera:', error);
-        // Fall back to simulated camera mode
+        clearTimeout(cameraTimeout);
+        console.error('Camera access failed - using simulation instead:', error);
         setUseFakeCamera(true);
         setHasPermission(true);
+        setIsActive(true);
       }
     };
 
@@ -257,25 +314,24 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       
       {/* Video stream container */}
       <div className="relative flex-1 bg-black overflow-hidden">
-        {/* Real camera video element - simplified for maximum compatibility */}
+        {/* Real camera video element - bare minimum approach with direct styles */}
         {!useFakeCamera && (
-          <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-black z-0">
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              autoPlay
-              playsInline
-              muted
-              controls={false}
-              data-facing="environment"
-              style={{ 
-                display: 'block',
-                maxWidth: '100%',
-                maxHeight: '100%',
-                backgroundColor: '#000'
-              }}
-            />
-          </div>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%', 
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: 0,
+              backgroundColor: '#000'
+            }}
+          />
         )}
         
         {/* Simulated camera view - to mimic real-time video feed */}
