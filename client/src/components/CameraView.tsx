@@ -167,16 +167,11 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
           playsInline
           muted
           id="camera-video"
-          width="100%"
-          height="100%"
           style={{
-            width: '100%',
+            width: '100%', 
             height: '100%',
             objectFit: 'cover',
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            zIndex: 1
+            display: 'block'
           }}
         />
         
@@ -192,7 +187,6 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
         
         {/* Either show the scanning UI or the model view, never both */}
         {showModel && recognizedModel ? (
-          /* 3D Model display - completely replaces scanning UI */
           <div className="absolute inset-0 z-20 bg-black/80">
             {/* Recognition success indicator */}
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full text-sm flex items-center z-30">
@@ -221,16 +215,15 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
             </Button>
           </div>
         ) : (
-          /* Scanning UI - Only visible when no model is shown */
           <div className="absolute inset-0 z-10">
             {/* Camera viewfinder and scan guidance */}
-            <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
-              <div className="text-white bg-black/60 px-4 py-2 rounded-lg mb-4 text-center">
+            <div className="pointer-events-none flex flex-col items-center justify-center h-full">
+              <div className="text-white bg-black/40 px-4 py-2 rounded-lg mb-4 text-center shadow-lg">
                 Point camera at target image and tap SCAN
               </div>
               
-              {/* Scanner visual */}
-              <div className="w-64 h-64 border-2 border-white/70 rounded-md relative">
+              {/* Scanner visual - completely transparent except for borders */}
+              <div className="w-64 h-64 border-2 border-white/50 rounded-md relative">
                 <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-500"></div>
                 <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-500"></div>
                 <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-500"></div>
@@ -246,7 +239,7 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
             {/* Active scan button - center bottom */}
             <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2">
               <Button
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 rounded-full shadow-lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 rounded-full shadow-lg pointer-events-auto"
                 onClick={scanForImages}
                 size="lg"
               >
