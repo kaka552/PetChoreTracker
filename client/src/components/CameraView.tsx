@@ -16,10 +16,25 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showModel, setShowModel] = useState(false);
   
-  // Start with fake camera mode for consistent cross-device experience
-  const [useFakeCamera, setUseFakeCamera] = useState(true);
+  // Try real camera first, fall back to simulation if needed
+  const [useFakeCamera, setUseFakeCamera] = useState(false);
+  const [isScanning, setIsScanning] = useState(true);
 
   // Initialize camera or simulated camera
+  // Auto-detect effect - simulates real-time AR marker detection
+  useEffect(() => {
+    if (isActive && isScanning) {
+      // Simulate AR scanning and detection at random intervals
+      const scanTimeout = setTimeout(() => {
+        console.log("AR scan detected marker!");
+        setShowModel(true);
+        setIsScanning(false);
+      }, 3000); // Detect after 3 seconds
+      
+      return () => clearTimeout(scanTimeout);
+    }
+  }, [isActive, isScanning]);
+
   useEffect(() => {
     // Force user interaction to help with video autoplay
     const forceFocus = () => {
@@ -322,41 +337,52 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           />
         )}
         
-        {/* Fake camera simulation when real camera doesn't work */}
+        {/* Simulated camera view - to mimic real-time video feed */}
         {useFakeCamera && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-gray-800 to-gray-900 text-white">
-            <div className="text-center p-4 max-w-xs">
-              <div className="flex justify-center">
-                <div className="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center mb-4 relative">
-                  <Camera className="h-10 w-10 text-blue-400" />
-                  <div className="absolute inset-0 rounded-full border-2 border-blue-400 animate-ping opacity-75"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-800 to-gray-900">
+            {/* Fake video stream background with grid */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="w-full h-full relative">
+                {/* Camera-like grid elements in background */}
+                <div className="absolute inset-0 grid grid-cols-6 grid-rows-6">
+                  {Array.from({ length: 36 }).map((_, i) => (
+                    <div key={i} className="border border-blue-900/20 flex items-center justify-center">
+                      {i % 7 === 0 && <div className="w-1 h-1 bg-blue-400/20 rounded-full"></div>}
+                    </div>
+                  ))}
                 </div>
+                
+                {/* Moving scan line animation */}
+                <div className="absolute left-0 right-0 h-0.5 bg-blue-500/50 animate-scan-line" 
+                     style={{ top: '50%' }}></div>
+                
+                {/* Simulated video noise */}
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-white/5 opacity-20"></div>
+              </div>
+            </div>
+            
+            {/* AR Scanner active UI overlay */}
+            <div className="absolute top-0 left-0 right-0 p-4 flex justify-between items-center">
+              <div className="text-sm text-white font-medium px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm flex items-center">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                AR Scanner Active
               </div>
               
-              <h3 className="text-xl font-bold mb-2">AR Scanner Active</h3>
-              
-              <p className="text-sm text-gray-300 mb-4">
-                {cameraError ? 
-                  `Camera Error: ${cameraError}. Using demo mode.` : 
-                  "Simulating camera view. Tap scan to detect DC motor image markers in view."}
-              </p>
-              
-              <div className="w-full h-1.5 bg-primary/20 rounded-full relative mx-auto overflow-hidden mb-6">
-                <div className="absolute top-0 left-0 h-full bg-primary animate-scan-line" style={{width: '30%'}}></div>
+              <div className="flex items-center px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm text-white text-xs">
+                <RefreshCw className="h-3 w-3 mr-1.5 animate-spin" />
+                Scanning...
+              </div>
+            </div>
+            
+            {/* Realtime scanning data overlay */}
+            <div className="absolute bottom-4 left-4 right-4 flex justify-between">
+              <div className="bg-black/60 text-xs text-white px-3 py-1.5 rounded backdrop-blur-sm">
+                DC Motor Target: Searching...
               </div>
               
-              {/* Scan button for demo mode */}
-              <Button 
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                onClick={() => setShowModel(true)}
-              >
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Scan Environment
-              </Button>
-              
-              <p className="text-xs text-gray-400 mt-3">
-                AR scanning processes environment to find matching image targets
-              </p>
+              <div className="bg-blue-900/60 text-xs text-white px-3 py-1.5 rounded backdrop-blur-sm">
+                {isScanning ? 'Processing frame...' : 'Target identified'}
+              </div>
             </div>
           </div>
         )}
@@ -484,15 +510,38 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
         </Button>
       </div>
       
-      {/* Capture button */}
-      <div className="p-4 flex justify-center bg-background">
+      {/* AR Control panel */}
+      <div className="p-4 flex justify-center items-center space-x-3 bg-background">
         <Button 
-          onClick={captureImage}
+          onClick={() => {
+            setIsScanning(true);
+            setTimeout(() => captureImage(), 2000);
+          }}
           size="lg"
-          className="rounded-full h-16 w-16 flex items-center justify-center"
+          className="rounded-full h-14 w-14 flex items-center justify-center"
           disabled={!isActive && !useFakeCamera}
         >
-          <Camera className="h-8 w-8" />
+          <RefreshCw className="h-6 w-6" />
+        </Button>
+        
+        <div className="text-sm font-medium text-center">
+          <div className="text-muted-foreground mb-1">AR Scanner</div>
+          <div className="flex items-center justify-center">
+            <div className="h-2 w-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
+            {isScanning ? "Detecting..." : "Ready"}
+          </div>
+        </div>
+        
+        <Button 
+          onClick={() => {
+            // Take full snapshot
+            captureImage();
+          }}
+          variant="outline"
+          size="icon"
+          className="rounded-full h-14 w-14 flex items-center justify-center"
+        >
+          <Camera className="h-6 w-6" />
         </Button>
       </div>
       
