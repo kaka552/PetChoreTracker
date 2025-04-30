@@ -23,18 +23,20 @@ interface ModelType {
 function findMatchingModel(capturedImage: string, models: ModelType[]): ModelType | null {
   console.log(`Scanning image against ${models?.length || 0} available models`);
   
-  // This is still a simplified version of image recognition
-  // but we'll at least return true to simulate a successful match
-  // In a real implementation, this would do actual image feature comparison
+  // In a real implementation, this would do actual image comparison
+  // using computer vision techniques like feature extraction and matching
   
   if (models && models.length > 0) {
-    // For demo purposes, let's randomly select a model
-    // to simulate the image recognition behavior
+    // For demo purposes, let's return the first model to ensure consistent behavior
     // In a real implementation, we would compare image features
     
-    const randomIndex = Math.floor(Math.random() * models.length);
-    console.log(`Matched with model: ${models[randomIndex].model_name}`);
-    return models[randomIndex];
+    // First, log available models for debugging
+    models.forEach((model, index) => {
+      console.log(`Model ${index}: ${model.model_name}`);
+    });
+    
+    console.log(`Selected model: ${models[0].model_name}`);
+    return models[0]; // Always return the first model for consistent demo behavior
   }
   
   console.log('No models available to match against');

@@ -16,6 +16,23 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
 
   // Initialize camera
   useEffect(() => {
+    // Force user interaction which helps with starting videos on some browsers
+    // especially on mobile where autoplay is restricted
+    const forceFocus = () => {
+      console.log("Applying focus to ensure camera can be started");
+      document.body.focus();
+      // Create a temporary button and click it to simulate user interaction
+      // This can help with autoplay restrictions on some browsers
+      const tempButton = document.createElement('button');
+      tempButton.style.position = 'absolute';
+      tempButton.style.left = '-1000px';
+      document.body.appendChild(tempButton);
+      tempButton.click();
+      document.body.removeChild(tempButton);
+    };
+    
+    forceFocus();
+    
     // Function to check if browser supports getUserMedia
     const checkCameraSupport = (): boolean => {
       return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -51,18 +68,37 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           console.log("Stream assigned to video element");
           
           // Fix for video not displaying - ensure it loads properly
-          videoRef.current.onloadedmetadata = () => {
-            console.log("Video metadata loaded, dimensions:", videoRef.current?.videoWidth, "x", videoRef.current?.videoHeight);
+          const videoElement = videoRef.current;
+          
+          // Set multiple event listeners to catch when the video is ready
+          videoElement.onloadedmetadata = () => {
+            console.log("Video metadata loaded, dimensions:", videoElement.videoWidth, "x", videoElement.videoHeight);
             
-            // This promise must be in place for iOS Safari
-            videoRef.current?.play().then(() => {
-              console.log("Video playback started successfully");
-              setIsActive(true);
-            }).catch(err => {
-              console.error("Error playing video:", err);
-              // Attempt to autoplay failed. This often happens on mobile
-              // Try again with user interaction if needed
-            });
+            // Force display the video
+            videoElement.style.display = 'block';
+            
+            // Try to play the video
+            videoElement.play()
+              .then(() => {
+                console.log("Video playback started successfully");
+                setIsActive(true);
+              })
+              .catch(err => {
+                console.error("Error playing video:", err);
+              });
+          };
+          
+          // Additional event handlers for reliability
+          videoElement.onloadeddata = () => {
+            console.log("Video data loaded");
+            videoElement.style.display = 'block';
+          };
+          
+          videoElement.oncanplay = () => {
+            console.log("Video can play");
+            videoElement.play()
+              .then(() => setIsActive(true))
+              .catch(e => console.error("Play error:", e));
           };
           
           videoRef.current.onerror = (e) => {
@@ -90,14 +126,40 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           console.error('Camera constraints cannot be satisfied');
           // Try again with less specific constraints
           try {
+            console.log("Trying fallback camera access with basic constraints");
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            
             if (videoRef.current) {
-              videoRef.current.srcObject = stream;
-              videoRef.current.onloadedmetadata = () => {
-                videoRef.current?.play()
-                  .then(() => setIsActive(true))
+              const videoElement = videoRef.current;
+              videoElement.srcObject = stream;
+              console.log("Fallback stream assigned to video element");
+              
+              // Use the same enhanced event handling for the fallback
+              videoElement.onloadedmetadata = () => {
+                console.log("Fallback: Video metadata loaded");
+                videoElement.style.display = 'block';
+                
+                videoElement.play()
+                  .then(() => {
+                    console.log("Fallback: Video playback started successfully");
+                    setIsActive(true);
+                  })
                   .catch(e => console.error("Fallback video play error:", e));
               };
+              
+              // Additional event handlers
+              videoElement.onloadeddata = () => {
+                console.log("Fallback: Video data loaded");
+                videoElement.style.display = 'block';
+              };
+              
+              videoElement.oncanplay = () => {
+                console.log("Fallback: Video can play");
+                videoElement.play()
+                  .then(() => setIsActive(true))
+                  .catch(e => console.error("Fallback play error:", e));
+              };
+              
               setMediaStream(stream);
               setHasPermission(true);
               return;
@@ -183,7 +245,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           autoPlay
           playsInline
           muted
-          style={{ transform: 'scaleX(-1)' }} // Mirror for front camera if needed
+          style={{ width: '100%', height: '100%' }}
         />
         
         {/* Camera status indicator */}
