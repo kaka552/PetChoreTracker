@@ -60,8 +60,14 @@ export default function ARScanner() {
     setAnalyzingImage(true);
     
     try {
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Show loading toast
+      toast({
+        title: 'Analyzing image...',
+        description: 'Looking for matching models',
+      });
+      
+      // Simulate processing time for better UX
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       // Find matching model for the captured image - cast to proper type
       const modelsArray = Array.isArray(models) ? models as ModelType[] : [];
@@ -70,11 +76,14 @@ export default function ARScanner() {
       if (matchedModel) {
         toast({
           title: 'Target found!',
-          description: `Matched with model: ${matchedModel.model_name}`,
+          description: `Loading model: ${matchedModel.model_name}`,
         });
         
-        // Navigate to model viewer with the matched model ID
-        setLocation(`/model/${matchedModel.id}`);
+        // Small delay before navigation for better UX
+        setTimeout(() => {
+          // Navigate to model viewer with the matched model ID
+          setLocation(`/model/${matchedModel.id}`);
+        }, 500);
       } else {
         toast({
           title: 'No match found',

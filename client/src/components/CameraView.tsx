@@ -102,10 +102,12 @@ export default function CameraView({ onImageCaptured, onBack, models = [] }: Cam
     const matchedModel = models[0];
     console.log(`Using model: ${matchedModel.model_name}`);
     
-    // Update state
-    setIsScanning(false);
-    setRecognizedModel(matchedModel);
-    setShowModel(true);
+    // Instead of showing the model in-place, capture the current frame
+    // and pass it to the parent component to handle navigation
+    const imageData = captureFrame();
+    if (imageData) {
+      onImageCaptured(imageData);
+    }
   };
   
   // Reset scanning state
