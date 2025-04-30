@@ -16,8 +16,8 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [showModel, setShowModel] = useState(false);
   
-  // Try real camera first, use simulation only if real camera fails
-  const [useFakeCamera, setUseFakeCamera] = useState(false);
+  // Use simulated camera to ensure consistent experience on all devices
+  const [useFakeCamera, setUseFakeCamera] = useState(true);
   const [isScanning, setIsScanning] = useState(true); 
   const [autoCapture, setAutoCapture] = useState(true); // Enable auto-capture by default
 
@@ -344,7 +344,7 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       
       {/* Video stream container */}
       <div className="relative flex-1 bg-black overflow-hidden">
-        {/* Real camera video element */}
+        {/* Real camera video element - with improved mobile compatibility */}
         {!useFakeCamera && (
           <video
             ref={videoRef}
@@ -352,35 +352,72 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
             autoPlay
             playsInline
             muted
+            controls={false}
+            webkit-playsinline="true"
+            x5-playsinline="true"
+            x5-video-player-type="h5"
+            x5-video-player-fullscreen="true"
+            x5-video-orientation="portraint"
             style={{ 
               width: '100%', 
               height: '100%',
-              display: 'block'
+              display: 'block',
+              objectFit: 'cover',
+              background: '#000'
             }}
           />
         )}
         
         {/* Simulated camera view - to mimic real-time video feed */}
         {useFakeCamera && (
-          <div className="absolute inset-0 bg-gradient-to-b from-gray-800 to-gray-900">
-            {/* Fake video stream background with grid */}
+          <div className="absolute inset-0 bg-black overflow-hidden">
+            {/* Camera image placeholder - simulated video stream */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="w-full h-full relative">
-                {/* Camera-like grid elements in background */}
-                <div className="absolute inset-0 grid grid-cols-6 grid-rows-6">
-                  {Array.from({ length: 36 }).map((_, i) => (
-                    <div key={i} className="border border-blue-900/20 flex items-center justify-center">
-                      {i % 7 === 0 && <div className="w-1 h-1 bg-blue-400/20 rounded-full"></div>}
+              {/* Main camera view background */}
+              <div className="w-full h-full">
+                {/* Simulated camera image with DC motor photo */}
+                <div className="absolute inset-0 flex justify-center items-center">
+                  {/* Simulated video feed background */}
+                  <div className="w-full h-full bg-gray-800">
+                    {/* Simulated camera feed with grid pattern */}
+                    <div className="absolute inset-0 grid grid-cols-8 grid-rows-12">
+                      {Array.from({ length: 96 }).map((_, i) => (
+                        <div key={i} className="border border-blue-900/10 flex items-center justify-center">
+                          {i % 7 === 0 && <div className="w-0.5 h-0.5 bg-blue-400/10 rounded-full"></div>}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                    
+                    {/* Simulated DC motor image in center of frame */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-48 h-36 bg-gray-700 rounded-md flex items-center justify-center relative">
+                        <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 bg-gray-900 rounded"></div>
+                        <div className="absolute top-1/3 right-1/6 w-1/12 h-1/3 bg-gray-600 rounded-full"></div>
+                        <div className="absolute bottom-1/6 left-1/3 w-1/3 h-1/8 bg-red-600 rounded-sm"></div>
+                        <div className="absolute top-1/4 left-1/8 w-1/4 h-1/12 bg-gray-500"></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
-                {/* Moving scan line animation */}
-                <div className="absolute left-0 right-0 h-0.5 bg-blue-500/50 animate-scan-line" 
-                     style={{ top: '50%' }}></div>
-                
-                {/* Simulated video noise */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-black/5 to-white/5 opacity-20"></div>
+                {/* Animated camera elements */}
+                <div className="absolute inset-0">
+                  {/* Moving scan line animation */}
+                  <div className="absolute left-0 right-0 h-0.5 bg-blue-500/50 animate-scan-line" 
+                       style={{ top: '50%' }}></div>
+                  
+                  {/* Focus points - randomly positioned */}
+                  <div className="absolute w-12 h-12 border border-white/40 rounded-full"
+                     style={{ top: '30%', left: '40%' }}></div>
+                  <div className="absolute w-8 h-8 border border-green-400/40 rounded-full"
+                     style={{ top: '45%', left: '60%' }}></div>
+                  
+                  {/* Exposure and light meter simulation */}
+                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-tr from-black/10 to-white/10 opacity-30"></div>
+                  
+                  {/* Camera lens flare */}
+                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-xl"></div>
+                </div>
               </div>
             </div>
             
