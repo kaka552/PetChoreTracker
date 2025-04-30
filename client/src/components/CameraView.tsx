@@ -21,6 +21,39 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [isScanning, setIsScanning] = useState(true); 
   const [autoCapture, setAutoCapture] = useState(true); // Enable auto-capture by default
 
+  // Effect to handle video display issues
+  useEffect(() => {
+    if (isActive && !useFakeCamera && videoRef.current) {
+      // Use DOM-based manipulation to ensure video is visible
+      const videoElement = document.getElementById('cameraVideoElement') as HTMLVideoElement;
+      
+      if (videoElement) {
+        console.log("Applying direct styles to ensure video is visible");
+        
+        // Force the video element to be visible with inline styles
+        videoElement.style.display = 'block';
+        videoElement.style.zIndex = '10';
+        videoElement.style.position = 'absolute';
+        videoElement.style.top = '0';
+        videoElement.style.left = '0';
+        videoElement.style.width = '100%';
+        videoElement.style.height = '100%';
+        
+        // Force layout recalculation
+        void videoElement.offsetHeight;
+        
+        // Check if video is actually playing and has content
+        if (videoElement.srcObject && !videoElement.paused) {
+          console.log("Video is playing with stream:", videoElement.srcObject);
+        } else {
+          console.log("Video is NOT playing properly, status:", 
+                      videoElement.paused ? "paused" : "not paused", 
+                      videoElement.srcObject ? "has source" : "no source");
+        }
+      }
+    }
+  }, [isActive, useFakeCamera]);
+
   // Initialize camera or simulated camera
   // Auto-capture and auto-detect effects for AR-like experience
   useEffect(() => {
@@ -123,8 +156,8 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
             },
             audio: false
           });
-        } catch (err) {
-          console.log("Attempt 1 failed:", err.message);
+        } catch (err: any) {
+          console.log("Attempt 1 failed:", err.message || "Unknown error");
           
           // Second try: any camera with lower resolution
           try {
@@ -136,8 +169,8 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
               },
               audio: false
             });
-          } catch (err2) {
-            console.log("Attempt 2 failed:", err2.message);
+          } catch (err2: any) {
+            console.log("Attempt 2 failed:", err2.message || "Unknown error");
             
             // Third try: minimum constraints
             console.log("Attempt 3: Using minimum constraints");
@@ -314,24 +347,34 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
       
       {/* Video stream container */}
       <div className="relative flex-1 bg-black overflow-hidden">
-        {/* Real camera video element - bare minimum approach with direct styles */}
+        {/* Real camera video element - absolute minimum for maximum compatibility */}
         {!useFakeCamera && (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            style={{ 
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%', 
-              height: '100%',
-              objectFit: 'cover',
-              zIndex: 0,
-              backgroundColor: '#000'
-            }}
-          />
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              id="cameraVideoElement"
+              style={{ 
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%', 
+                height: '100%',
+                zIndex: 5,
+                backgroundColor: 'transparent'
+              }}
+            />
+            
+            {/* Debug overlay for camera - shows when camera should be active */}
+            <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center z-1">
+              <div className="text-white text-center">
+                <p className="mb-2">Camera should be visible here</p>
+                <p className="text-xs">Status: {isActive ? 'Active' : 'Initializing...'}</p>
+              </div>
+            </div>
+          </>
         )}
         
         {/* Simulated camera view - to mimic real-time video feed */}
@@ -496,33 +539,33 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           </div>
         )}
         
-        {/* Scanner overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-          {/* Instructions text */}
-          <div className="mb-8 bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
-            Point camera at DC motor image
-          </div>
-          
-          <div className="w-64 h-64 border-2 border-white/80 rounded-lg relative">
-            {/* Corner markers to make it look more like a scanner */}
-            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary rounded-tl-lg"></div>
-            <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary rounded-tr-lg"></div>
-            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary rounded-bl-lg"></div>
-            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary rounded-br-lg"></div>
-            
-            {/* Scanning animation */}
-            <div className="absolute left-0 right-0 h-0.5 bg-primary top-1/2 animate-pulse"></div>
-          </div>
-          
-          {/* Status indicator */}
-          {(isActive || useFakeCamera) && (
-            <div className="absolute top-2 right-2 flex items-center">
-              <div className="bg-green-500 h-3 w-3 rounded-full animate-pulse mr-1.5"></div>
-              <span className="text-xs text-white bg-black/50 px-2 py-0.5 rounded-full">
-                {useFakeCamera ? "Demo Mode" : "Camera Active"}
-              </span>
+        {/* Scanner overlay - hidden when camera is active and not in fake mode */}
+        {(useFakeCamera || !isActive) && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-4">
+            {/* Instructions text */}
+            <div className="mb-8 bg-black/50 text-white px-4 py-2 rounded-full text-sm backdrop-blur-sm">
+              Point camera at DC motor image
             </div>
-          )}
+            
+            <div className="w-64 h-64 border-2 border-white/80 rounded-lg relative">
+              {/* Corner markers to make it look more like a scanner */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-primary rounded-tl-lg"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-primary rounded-tr-lg"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-primary rounded-bl-lg"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-primary rounded-br-lg"></div>
+              
+              {/* Scanning animation */}
+              <div className="absolute left-0 right-0 h-0.5 bg-primary top-1/2 animate-pulse"></div>
+            </div>
+          </div>
+        )}
+        
+        {/* Status indicator */}
+        <div className="absolute top-2 right-2 flex items-center z-20">
+          <div className="bg-green-500 h-3 w-3 rounded-full animate-pulse mr-1.5"></div>
+          <span className="text-xs text-white bg-black/50 px-2 py-0.5 rounded-full">
+            {useFakeCamera ? "Demo Mode" : (isActive ? "Camera Active" : "Starting...")}
+          </span>
         </div>
         
         {/* Back button */}
