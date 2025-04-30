@@ -1,0 +1,114 @@
+
+
+### **Project Goal**
+Build a cross-platform AR mobile application (iOS + Android) that:
+- Allows users to scan images to view mapped 3D models.
+- Supports two roles: **User** and **Dev (Developer/Admin)**.
+- Offers role-based access control.
+- Provides interactive model view and admin model management.
+
+---
+
+### **Accounts to Create (Initial Setup)**
+
+You need the following accounts (I'll guide you; I can't create them directly):
+
+1. **Supabase** – For authentication and database backend.  
+   [https://supabase.com](https://supabase.com)
+
+2. **Unity** – For developing the AR app.  
+   [https://unity.com](https://unity.com)
+
+3. **Vuforia** – For image recognition AR tracking.  
+   [https://developer.vuforia.com](https://developer.vuforia.com)
+
+4. **GitHub** – For version control and project backup.  
+   [https://github.com](https://github.com)
+
+5. **Google Firebase (Optional)** – In case you want Google Sign-In.  
+   [https://firebase.google.com](https://firebase.google.com)
+
+6. **App Store / Google Play Console** (later for publishing)
+
+---
+
+### **Feature List**
+
+#### 1. **Authentication System (Initial Focus)**
+- **Sign In / Sign Up**
+- Role-based access: User / Dev
+- Use **Supabase Auth** to manage credentials and roles.
+
+#### 2. **Role-Based Access**
+- **User View** (Welcome Page)
+  - Camera scan button
+  - Logout button (bottom-right)
+- **Dev View** (Welcome Page)
+  - All user features +
+  - Upload 3D model + image + description
+  - Edit or update existing model mappings
+
+#### 3. **Camera & AR Flow**
+- Click camera image button → Go to **AR scanning scene**
+- Scan image → Load corresponding 3D model
+- Load model in **new scene** for interaction:
+  - Zoom / Rotate / Drag
+  - **Double-tap** on model → Show description
+- **Navigation:**
+  - Back button in AR scan scene → Welcome Page
+  - Back button in model view → AR scan scene
+
+---
+
+### **Database Design (via Supabase)**
+
+1. **Users Table**
+   - `id`, `email`, `role` (user/dev)
+
+2. **Models Table**
+   - `id`, `model_name`, `image_target`, `model_file_url`, `description`, `uploaded_by`
+
+3. **Model Mapping Table (Optional)**
+   - `model_id`, `image_id`, `target_name`, `position_data`, etc.
+
+---
+
+### **Tasks To Do**
+
+1. [ ] **Set up Supabase project**  
+   - Auth enabled  
+   - Create the **Users** and **Models** tables
+
+2. [ ] **Implement Authentication in Unity**  
+   - Sign Up / Sign In flow with Supabase  
+   - Role check after login to load appropriate UI
+
+3. [ ] **Create Welcome Page UI for both roles**
+
+4. [ ] **Camera Button → AR Scene → Model Viewer Scene**
+
+5. [ ] **Dev Panel for Uploading Models**
+
+6. [ ] **Set double-tap listener to show model description**
+
+---
+
+### **Questions / Requests**
+
+1. **Supabase DB visibility issue**: No, DB is not yet created. I will help you write schema creation SQL or you can use Supabase dashboard manually.
+
+2. **Master Access**: `kakateja52@gmail.com` will be given Dev/Admin privileges in the Users table.
+
+3. **APK Request**: Once the authentication part is complete and a basic scene structure is ready, I can guide you to build an APK via Unity.
+
+---
+
+### **Next Action (as per your request)**
+
+> **"Let's focus on the authentication part now..."**
+
+I'll help you implement **authentication in Unity with Supabase**, including DB setup. Shall we proceed with:
+
+- Creating the Supabase project
+- Setting up tables (`Users`, maybe `Roles`)
+- Writing Unity login/registration scripts using Supabase REST API?
