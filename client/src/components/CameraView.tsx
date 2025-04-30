@@ -14,18 +14,29 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
   const [isScanning, setIsScanning] = useState(true);
   const [showModel, setShowModel] = useState(false);
   
-  // Automatically detect markers after some time
-  useEffect(() => {
-    if (isScanning) {
-      const timer = setTimeout(() => {
-        console.log("Auto-detecting marker after timeout");
-        setShowModel(true);
-        setIsScanning(false);
-      }, 3000);
+  // State for manual scanning
+  const [recognizedModel, setRecognizedModel] = useState<any>(null);
+  const [scanResult, setScanResult] = useState<string | null>(null);
+  
+  // Manual scan button function (more reliable than auto-detection)
+  const scanForImages = () => {
+    setIsScanning(false);
+    
+    if (models && models.length > 0) {
+      console.log("Scanning image against available models:");
+      models.forEach((model, index) => {
+        console.log(`Model ${index}: ${model.model_name}`);
+      });
       
-      return () => clearTimeout(timer);
+      // Load the first model
+      setRecognizedModel(models[0]);
+      setScanResult(`Found: ${models[0].model_name}`);
+      setShowModel(true);
+    } else {
+      console.warn("No models available to match against");
+      setScanResult("No models available");
     }
-  }, [isScanning]);
+  };
   
   // Initialize camera as simply as possible
   useEffect(() => {
@@ -107,14 +118,17 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           playsInline
           muted
           id="camera-video"
+          width="100%"
+          height="100%"
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
-            position: 'absolute',
+            position: 'fixed',
             top: 0,
             left: 0,
-            zIndex: 1
+            zIndex: 10,
+            backgroundColor: '#000'
           }}
         />
         
@@ -174,10 +188,20 @@ export default function CameraView({ onImageCaptured, onBack }: CameraViewProps)
           <ArrowLeft className="h-5 w-5" />
         </Button>
         
-        <div className="text-white text-sm px-4 py-1 bg-blue-600 rounded-full flex items-center">
-          <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-          {isScanning ? "Scanning..." : "Target found"}
-        </div>
+        {isScanning ? (
+          <Button 
+            onClick={scanForImages} 
+            className="rounded-full bg-blue-600 hover:bg-blue-700 flex items-center"
+          >
+            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
+            Scan Image
+          </Button>
+        ) : (
+          <div className="text-white text-sm px-4 py-1 bg-green-600 rounded-full flex items-center">
+            <div className="w-2 h-2 bg-white rounded-full mr-2"></div>
+            {scanResult || "Target found"}
+          </div>
+        )}
         
         {!isScanning && (
           <Button onClick={captureImage} className="rounded-full bg-green-600 hover:bg-green-700">
